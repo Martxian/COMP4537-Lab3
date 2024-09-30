@@ -2,6 +2,7 @@ const http = require('http');
 const url = require('url');
 const fs = require('fs').promises;
 const path = require('path');
+const os = require('os');
 
 class Server {
     constructor() {
@@ -9,6 +10,7 @@ class Server {
         this.PORT = process.env.PORT || 8080;
         this.utils = require('./modules/utils.js');
         this.lang = require('./lang/messages/en/en.js');
+        this.filePath = path.join(os.tmpdir(), 'file.txt');
     }
 
     async handleRequest(req, res) {
@@ -42,14 +44,19 @@ class Server {
 
     async handleWriteFile(req, res, query) {
         const text = query.text;
-        await fs.appendFile('file.txt', text + '\n');
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(`<p>Text "${text}" appended to file.txt</p>`);
+        try {
+            await fs.appendFile(this.filePath, text + '\n');
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(`<p>Text "${text}" appended to file.txt</p>`);
+        } catch (error) {
+            console.error('Error writing to file:', error);
+            this.handleError(res, error);
+        }
     }
 
     async handleReadFile(req, res) {
         try {
-            const data = await fs.readFile('file.txt', 'utf8');
+            const data = await fs.readFile(this.filePath, 'utf8');
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(`<pre>${data}</pre>`);
         } catch (error) {
@@ -57,7 +64,8 @@ class Server {
                 res.writeHead(404, { 'Content-Type': 'text/html' });
                 res.end(`<p>404: File "file.txt" not found</p>`);
             } else {
-                throw error;
+                console.error('Error reading file:', error);
+                this.handleError(res, error);
             }
         }
     }
