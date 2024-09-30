@@ -1,8 +1,6 @@
 const http = require('http');
 const url = require('url');
-const fs = require('fs').promises;
-const path = require('path');
-const os = require('os');
+const { kv } = require('@vercel/kv');
 
 class Server {
     constructor() {
@@ -10,7 +8,7 @@ class Server {
         this.PORT = process.env.PORT || 8080;
         this.utils = require('./modules/utils.js');
         this.lang = require('./lang/messages/en/en.js');
-        this.filePath = path.join(os.tmpdir(), 'file.txt');
+        this.fileKey = 'file_contents';
     }
 
     async handleRequest(req, res) {
@@ -45,28 +43,30 @@ class Server {
     async handleWriteFile(req, res, query) {
         const text = query.text;
         try {
-            await fs.appendFile(this.filePath, text + '\n');
+            let currentContent = await kv.get(this.fileKey) || '';
+            currentContent += text + '\n';
+            await kv.set(this.fileKey, currentContent);
             res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(`<p>Text "${text}" appended to file.txt</p>`);
+            res.end(`<p>Text "${text}" appended to file</p>`);
         } catch (error) {
-            console.error('Error writing to file:', error);
+            console.error('Error writing to KV store:', error);
             this.handleError(res, error);
         }
     }
 
     async handleReadFile(req, res) {
         try {
-            const data = await fs.readFile(this.filePath, 'utf8');
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(`<pre>${data}</pre>`);
-        } catch (error) {
-            if (error.code === 'ENOENT') {
-                res.writeHead(404, { 'Content-Type': 'text/html' });
-                res.end(`<p>404: File "file.txt" not found</p>`);
+            const data = await kv.get(this.fileKey);
+            if (data) {
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.end(`<pre>${data}</pre>`);
             } else {
-                console.error('Error reading file:', error);
-                this.handleError(res, error);
+                res.writeHead(404, { 'Content-Type': 'text/html' });
+                res.end(`<p>404: File contents not found</p>`);
             }
+        } catch (error) {
+            console.error('Error reading from KV store:', error);
+            this.handleError(res, error);
         }
     }
 
