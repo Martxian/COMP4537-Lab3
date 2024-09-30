@@ -1,65 +1,84 @@
+const http = require('http');
 const url = require('url');
-const fs = require('fs');
-const { getDate } = require('./modules/utils.js');
-const lang = require('./lang/messages/en/en.js');
+const fs = require('fs').promises;
+const path = require('path');
 
-module.exports = (req, res) => {
-    const parsedUrl = url.parse(req.url, true);
-    const query = parsedUrl.query;
-    const path = parsedUrl.pathname;
+class Server {
+    constructor() {
+        this.server = http.createServer(this.handleRequest.bind(this));
+        this.PORT = process.env.PORT || 8080;
+        this.utils = require('./modules/utils.js');
+        this.lang = require('./lang/messages/en/en.js');
+    }
 
-    // Handle greeting and time response
-    if (path === '/getDate' && query.name) {
+    async handleRequest(req, res) {
+        const parsedUrl = url.parse(req.url, true);
+        const query = parsedUrl.query;
+        const pathname = parsedUrl.pathname;
+
+        try {
+            if (pathname === '/getDate' && query.name) {
+                await this.handleGetDate(req, res, query);
+            } else if (pathname === '/writeFile' && query.text) {
+                await this.handleWriteFile(req, res, query);
+            } else if (pathname === '/readFile') {
+                await this.handleReadFile(req, res);
+            } else {
+                this.handleNotFound(res);
+            }
+        } catch (error) {
+            this.handleError(res, error);
+        }
+    }
+
+    async handleGetDate(req, res, query) {
         const name = query.name;
-        const currentTime = getDate();
-        const message = lang.greeting.replace('%1', name).replace('%2', currentTime);
+        const currentTime = this.utils.getDate();
+        const message = this.lang.greeting.replace('%1', name).replace('%2', currentTime);
 
-        // Respond with message styled in blue
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(`<p style="color: blue;">${message}</p>`);
     }
 
-    // Handle appending text to file
-    else if (path === '/writeFile' && query.text) {
+    async handleWriteFile(req, res, query) {
         const text = query.text;
-
-        // Append text to file.txt
-        fs.appendFile('file.txt', text + '\n', (err) => {
-            if (err) {
-                res.writeHead(500, { 'Content-Type': 'text/html' });
-                res.end('<p>Internal Server Error</p>');
-                return;
-            }
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(`<p>Text "${text}" appended to file.txt</p>`);
-        });
+        await fs.appendFile('file.txt', text + '\n');
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`<p>Text "${text}" appended to file.txt</p>`);
     }
 
-    // Handle reading file content
-    else if (path === '/readFile/file.txt') {
-        fs.readFile('file.txt', 'utf8', (err, data) => {
-            if (err) {
-                if (err.code === 'ENOENT') {
-                    res.writeHead(404, { 'Content-Type': 'text/html' });
-                    res.end(`<p>404: File "file.txt" not found</p>`);
-                } else {
-                    res.writeHead(500, { 'Content-Type': 'text/html' });
-                    res.end('<p>Internal Server Error</p>');
-                }
-                return;
-            }
+    async handleReadFile(req, res) {
+        try {
+            const data = await fs.readFile('file.txt', 'utf8');
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(`<pre>${data}</pre>`);
-        });
+        } catch (error) {
+            if (error.code === 'ENOENT') {
+                res.writeHead(404, { 'Content-Type': 'text/html' });
+                res.end(`<p>404: File "file.txt" not found</p>`);
+            } else {
+                throw error;
+            }
+        }
     }
 
-    else {
+    handleNotFound(res) {
         res.writeHead(404, { 'Content-Type': 'text/html' });
         res.end('<p style="color: red;">404: Not Found</p>');
     }
-};
 
-const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => {
-    console.log(`Server is running at http://localhost:${PORT}`);
-});
+    handleError(res, error) {
+        console.error(error);
+        res.writeHead(500, { 'Content-Type': 'text/html' });
+        res.end('<p>Internal Server Error</p>');
+    }
+
+    start() {
+        this.server.listen(this.PORT, () => {
+            console.log(`Server is running at http://localhost:${this.PORT}`);
+        });
+    }
+}
+
+const server = new Server();
+server.start();
