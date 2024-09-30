@@ -1,15 +1,14 @@
 const url = require('url');
 const { getDate } = require('./modules/utils.js');
-const lang = require('./lang/messages/en.js');
+const lang = require('./lang/messages/en/en.js');
 
-// Vercel handler function
 module.exports = (req, res) => {
     const parsedUrl = url.parse(req.url, true);
     const query = parsedUrl.query;
     const path = parsedUrl.pathname;
 
     // Check if the path is root `/` and the name query parameter exists
-    if (path === '/' && query.name) {
+    if (path === '/') {
         const name = query.name;
         const currentTime = getDate();
         const message = lang.greeting.replace('%1', name).replace('%2', currentTime);
