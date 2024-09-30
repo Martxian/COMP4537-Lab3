@@ -1,24 +1,15 @@
-const url = require('url');
-const { getDate } = require('./modules/utils.js');
-const lang = require('./lang/messages/en.js');
+const express = require('express');
 
-// Vercel handler function
-module.exports = (req, res) => {
-    const parsedUrl = url.parse(req.url, true);
-    const query = parsedUrl.query;
-    const path = parsedUrl.pathname;
+const app = express();
 
-    // Handle greeting and time response for the /getDate endpoint
-    if (path === '/COMP4537/labs/3/getDate/' && query.name) {
-        const name = query.name;
-        const currentTime = getDate();
-        const message = lang.greeting.replace('%1', name).replace('%2', currentTime);
+app.get('/', (req, res) => {
+    const name = req.query.name;
+    const currentTime = new Date().toISOString();
+    const message = `Hello, ${name}! The current server time is ${currentTime}`;
+    res.send(`<p style="color: blue;">${message}</p>`);
+});
 
-        // Respond with message styled in blue
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(`<p style="color: blue;">${message}</p>`);
-    } else {
-        res.writeHead(404, { 'Content-Type': 'text/html' });
-        res.end('<p style="color: red;">404: Not Found</p>');
-    }
-};
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.log(`Server listening on port ${port}`);
+});
