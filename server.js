@@ -4,6 +4,10 @@ const { kv } = require('@vercel/kv');
 
 class Server {
     constructor() {
+        console.log('KV_REST_API_URL:', process.env.KV_REST_API_URL);
+        console.log('KV_REST_API_TOKEN:', process.env.KV_REST_API_TOKEN);
+
+
         this.server = http.createServer(this.handleRequest.bind(this));
         this.PORT = process.env.PORT || 8080;
         this.utils = require('./modules/utils.js');
