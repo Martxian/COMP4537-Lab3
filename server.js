@@ -10,7 +10,7 @@ module.exports = (req, res) => {
     const path = parsedUrl.pathname;
 
     // Handle greeting and time response
-    if (path === '/COMP4537/labs/3/getDate/' && query.name) {
+    if (path === 'getDate' && query.name) {
         const name = query.name;
         const currentTime = getDate();
         const message = lang.greeting.replace('%1', name).replace('%2', currentTime);
@@ -21,7 +21,7 @@ module.exports = (req, res) => {
     }
 
     // Handle appending text to file
-    else if (path === '/COMP4537/labs/3/writeFile/' && query.text) {
+    else if (path === 'writeFile' && query.text) {
         const text = query.text;
 
         // Append text to file.txt
@@ -37,7 +37,7 @@ module.exports = (req, res) => {
     }
 
     // Handle reading file content
-    else if (path === '/COMP4537/labs/3/readFile/file.txt') {
+    else if (path === 'readFile/file.txt') {
         fs.readFile('file.txt', 'utf8', (err, data) => {
             if (err) {
                 if (err.code === 'ENOENT') {
