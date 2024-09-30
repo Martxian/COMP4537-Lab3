@@ -8,7 +8,7 @@ module.exports = (req, res) => {
     const path = parsedUrl.pathname;
 
     // Handle greeting and time response
-    if (path === '/getDate' && query.name) {
+    if (path === '/' && query.name) {
         const name = query.name;
         const currentTime = getDate();
         const message = lang.greeting.replace('%1', name).replace('%2', currentTime);
